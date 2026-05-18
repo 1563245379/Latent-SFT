@@ -27,6 +27,9 @@ Latent reasoning aims to reduce the cost of explicit Chain-of-Thought (CoT) reas
 
 **Latent-SFT** addresses this by viewing latent reasoning as a **chain of superposition** in the LLM vocabulary space. Instead of treating latent states as arbitrary hidden vectors, Latent-SFT represents each latent token as a probability distribution over the vocabulary. This yields a structured latent space that remains closely aligned with the model's pretrained lexical semantics.
 
+> [!IMPORTANT]
+> For compatibility with subsequent Latent-GRPO training, this open-source implementation uses **top-k vocabulary superposition** by default instead of full-vocabulary training, where each latent token is approximated by the superposition of the top-k vocabulary tokens.
+
 The framework is organized around three core components:
 
 - **Latent-Vocab**: Constrains latent states to the vocabulary embedding space through top-k lexical superposition.
@@ -380,7 +383,6 @@ python eval/eval_latent_model_hf_batch.py \
   --batch_size 128 \
   --max_new_tokens 128 \
   --topk_interpolation 10 \
-  --add_gumbel_noise False \
   --gumbel_temperature 1.0 \
   --noise_scale 1.0
 ```
@@ -390,7 +392,7 @@ Important parameters:
 - **`--latent_model_path`**: Stage-2 run directory. The script loads `<latent_model_path>/checkpoint-<check_point>/hf`.
 - **`--data_path`**: Evaluation jsonl file, for example `GSM8k-Aug-test.jsonl`, `GSM8k-Hard-test.jsonl`, `Multiarith-test.jsonl`, or `Svamp-test.jsonl`.
 - **`--topk_interpolation`** should match the intended Stage-2 latent decoding setting.
-- **`--add_gumbel_noise`** is set to `False` by default for evaluation.
+- **`--add_gumbel_noise`** is disabled by default for evaluation. Add this flag only if you intentionally want to enable Gumbel noise.
 
 ### SGLang-Based Evaluation
 
@@ -425,7 +427,6 @@ python eval/eval_math500_sglang.py \
   --temperature 0.6 \
   --top_p 0.95 \
   --max_topk 10 \
-  --add_noise_gumbel_softmax False \
   --gumbel_softmax_temperature 1.0 \
   --noise_scale 1.0
 ```
@@ -447,7 +448,6 @@ python eval/eval_high_tasks_sglang.py \
   --temperature 0.6 \
   --top_p 0.95 \
   --max_topk 10 \
-  --add_noise_gumbel_softmax False \
   --gumbel_softmax_temperature 1.0 \
   --noise_scale 1.0
 ```
@@ -462,7 +462,7 @@ Important parameters:
 - **`--math500_path`**, **`--aime24_path`**, **`--aime25_path`**, and **`--gpqa_path`** specify the datasets used by the all-in-one high-task evaluator.
 - **`--ckpt_start`**, **`--ckpt_step`**, and **`--ckpt_count`** control which Stage-2 checkpoints are evaluated.
 - **`--max_topk`** is equivalent to the `topk_interpolation` parameter used during training and should stay consistent with it.
-- **`--add_noise_gumbel_softmax`** is set to `False` by default for evaluation.
+- **`--add_noise_gumbel_softmax`** is disabled by default for evaluation. Add this flag only if you intentionally want to enable Gumbel noise.
 - **`--gumbel_softmax_temperature`** and **`--noise_scale`** control the latent decoding behavior when Gumbel noise is enabled.
 
 ### Released Checkpoints

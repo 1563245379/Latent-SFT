@@ -539,8 +539,8 @@ def main():
     parser.add_argument("--num_score_workers", type=int, default=32)
     parser.add_argument("--gumbel_softmax_temperature", type=float, default=1.0)
     parser.add_argument("--noise_scale", type=float, default=1.0)
-    parser.add_argument("--add_noise_gumbel_softmax", default=False)
-    parser.add_argument("--save_predictions", default=False,
+    parser.add_argument("--add_noise_gumbel_softmax", action="store_true")
+    parser.add_argument("--save_predictions", action="store_true",
                         help="Save per-checkpoint generation results to jsonl")
     args = parser.parse_args()
 

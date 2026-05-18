@@ -439,7 +439,7 @@ if __name__ == '__main__':
     parser.add_argument('--dtype', default='bfloat16', type=str, choices=['float32', 'float16', 'bfloat16'])
     parser.add_argument('--compression_rate', type=int, default=16)
     parser.add_argument('--topk_interpolation', type=int, default=10)
-    parser.add_argument('--full_vocab', default=False, help='Enable full-vocab mode: save full probs instead of top-k')
+    parser.add_argument('--full_vocab', action='store_true', help='Enable full-vocab mode: save full probs instead of top-k')
     
     args = parser.parse_args()
 

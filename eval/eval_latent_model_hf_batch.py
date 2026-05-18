@@ -80,7 +80,7 @@ def prepare_single_example(examples, model, latent_model_path):
     input_ids = model.tokenizer(input_prefix, truncation=False, padding=False, add_special_tokens = False, return_attention_mask=False)['input_ids']
    
     text_input = dict()
-    text_input['input_ids'] = input_ids+model.latent_token_ids[0]
+    text_input['input_ids'] = input_ids + model.latent_token_ids[0]
     text_input['attention_mask'] = [1] * len(text_input['input_ids'])
 
     text_input['input_ids'] = torch.tensor(text_input['input_ids'], dtype=torch.long).to(model.device).unsqueeze(0)
@@ -300,7 +300,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_new_tokens', type=int, default=128)
     parser.add_argument('--topk_interpolation', type=int, default=10)
     # Gumbel noise args
-    parser.add_argument('--add_gumbel_noise', type=bool, default=False)
+    parser.add_argument('--add_gumbel_noise', action='store_true')
     parser.add_argument('--gumbel_temperature', type=float, default=1.0)
     parser.add_argument('--noise_scale', type=float, default=0.5)
     
