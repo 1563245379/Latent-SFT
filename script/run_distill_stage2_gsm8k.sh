@@ -22,6 +22,7 @@ validation_split_ratio=0.05
 validation_batch_size=4
 save_best_total_limit=3
 save_recent_total_limit=1
+debug=False
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -66,6 +67,7 @@ stage2_train_args="
 "
 
 train_args="
+    --debug ${debug} \
     --deepspeed ${deepspeed_config} \
     --no_remove_unused_columns \
     --learning_rate 3e-4 \

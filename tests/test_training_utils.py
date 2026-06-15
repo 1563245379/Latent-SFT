@@ -1,6 +1,7 @@
 import unittest
+from types import SimpleNamespace
 
-from src.training_utils import split_train_validation_dataset
+from src.training_utils import apply_debug_training_limits, split_train_validation_dataset
 
 
 class DatasetSplitTest(unittest.TestCase):
@@ -33,6 +34,29 @@ class DatasetSplitTest(unittest.TestCase):
                 validation_split_ratio=1.0,
                 seed=13,
             )
+
+    def test_debug_limits_training_dataset_to_200_examples_and_three_epochs(self):
+        training_args = SimpleNamespace(debug=True, num_train_epochs=10, max_steps=500)
+
+        debug_dataset = apply_debug_training_limits(
+            list(range(500)),
+            training_args=training_args,
+        )
+
+        self.assertEqual(len(debug_dataset), 200)
+        self.assertEqual(training_args.num_train_epochs, 3)
+        self.assertEqual(training_args.max_steps, -1)
+
+    def test_debug_leaves_short_training_dataset_length_unchanged(self):
+        training_args = SimpleNamespace(debug=True, num_train_epochs=10)
+
+        debug_dataset = apply_debug_training_limits(
+            list(range(50)),
+            training_args=training_args,
+        )
+
+        self.assertEqual(len(debug_dataset), 50)
+        self.assertEqual(training_args.num_train_epochs, 3)
 
 
 if __name__ == "__main__":

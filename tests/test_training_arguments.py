@@ -12,6 +12,7 @@ from src.stage2.arguments import (
     ModelArguments as Stage2ModelArguments,
     Stage2TrainingArguments,
 )
+from src.training_utils import parse_project_debug_flag
 
 
 class TrainingArgumentsCompatibilityTest(unittest.TestCase):
@@ -118,6 +119,73 @@ class TrainingArgumentsCompatibilityTest(unittest.TestCase):
         self.assertEqual(training_args.save_best_total_limit, 3)
         self.assertEqual(training_args.save_recent_total_limit, 1)
         self.assertEqual(training_args.validation_batch_size, 2)
+
+    def test_stage1_parser_accepts_debug_argument(self):
+        parser = HfArgumentParser(
+            (Stage1ModelArguments, Stage1DataArguments, Stage1TrainingArguments)
+        )
+
+        _, _, training_args = parser.parse_args_into_dataclasses(
+            [
+                "--encoder_name_or_path",
+                "encoder",
+                "--decoder_name_or_path",
+                "decoder",
+                "--train_data_path",
+                "/tmp/train.jsonl",
+                "--output_dir",
+                "/tmp/latent-sft-stage1-debug",
+                "--training_debug",
+                "True",
+            ]
+        )
+
+        self.assertTrue(training_args.training_debug)
+
+    def test_stage2_parser_accepts_debug_argument(self):
+        parser = HfArgumentParser(
+            (Stage2ModelArguments, Stage2DataArguments, Stage2TrainingArguments)
+        )
+
+        _, _, training_args = parser.parse_args_into_dataclasses(
+            [
+                "--latent_model_path",
+                "latent",
+                "--train_data_path",
+                "/tmp/train.jsonl",
+                "--train_latent_soft_label_path",
+                "/tmp/latent",
+                "--output_dir",
+                "/tmp/latent-sft-stage2-debug",
+                "--training_debug",
+                "True",
+            ]
+        )
+
+        self.assertTrue(training_args.training_debug)
+
+    def test_project_debug_flag_consumes_boolean_debug_alias(self):
+        args, debug = parse_project_debug_flag(
+            [
+                "--output_dir",
+                "/tmp/latent-sft-debug",
+                "--debug",
+                "True",
+                "--save_strategy",
+                "epoch",
+            ]
+        )
+
+        self.assertTrue(debug)
+        self.assertEqual(
+            args,
+            [
+                "--output_dir",
+                "/tmp/latent-sft-debug",
+                "--save_strategy",
+                "epoch",
+            ],
+        )
 
 
 if __name__ == "__main__":

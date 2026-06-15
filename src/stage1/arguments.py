@@ -72,4 +72,7 @@ class Stage1TrainingArguments(TrainingArguments):
     validation_max_new_tokens: int = field(
         default=256, metadata={"help": "Maximum generated tokens per validation example"}
     )
+    training_debug: bool = field(
+        default=False, metadata={"help": "Debug mode: train on at most 200 examples for 3 epochs"}
+    )
     

@@ -21,6 +21,7 @@ train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
 compression_rate=16
 topk_interpolation=10
 checkpoint_save_total_limit=3
+debug=False
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -58,6 +59,7 @@ stage1_train_args="
 "
 
 train_args="
+    --debug ${debug} \
     --deepspeed ${deepspeed_config} \
     --no_remove_unused_columns \
     --learning_rate 1e-5 \

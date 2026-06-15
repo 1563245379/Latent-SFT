@@ -29,14 +29,21 @@ from src.stage1.trainer import (
     Stage1UnionTrainer
 )
 from src.checkpointing import prepare_best_and_recent_checkpointing
-from src.training_utils import split_train_validation_dataset
+from src.training_utils import (
+    apply_debug_training_limits,
+    apply_project_debug_flag,
+    parse_project_debug_flag,
+    split_train_validation_dataset,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def main():
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    parser_args, project_debug = parse_project_debug_flag(sys.argv[1:])
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses(args=parser_args)
+    apply_project_debug_flag(training_args, project_debug)
     
     model_args: ModelArguments
     data_args: DataArguments
@@ -96,6 +103,7 @@ def main():
         validation_split_ratio=data_args.validation_split_ratio,
         seed=training_args.seed,
     )
+    train_dataset = apply_debug_training_limits(train_dataset, training_args)
 
     trainer = Stage1UnionTrainer(
         model=model,

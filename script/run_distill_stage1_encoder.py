@@ -28,13 +28,20 @@ from src.stage1.data import (
 from src.stage1.trainer import (
     Stage1EncoderTrainer
 )
+from src.training_utils import (
+    apply_debug_training_limits,
+    apply_project_debug_flag,
+    parse_project_debug_flag,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def main():
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
-    model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    parser_args, project_debug = parse_project_debug_flag(sys.argv[1:])
+    model_args, data_args, training_args = parser.parse_args_into_dataclasses(args=parser_args)
+    apply_project_debug_flag(training_args, project_debug)
     
     model_args: ModelArguments
     data_args: DataArguments
@@ -91,6 +98,7 @@ def main():
         args=data_args, 
         model=model
     )
+    train_dataset = apply_debug_training_limits(train_dataset, training_args)
 
     trainer = Stage1EncoderTrainer(
         model=model,

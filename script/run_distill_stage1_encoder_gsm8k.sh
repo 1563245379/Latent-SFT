@@ -22,6 +22,7 @@ train_data_split="${TRAIN_DATA_SPLIT:-train}"
 compression_rate=2
 topk_interpolation=10
 checkpoint_save_total_limit=3
+debug=True
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -60,6 +61,7 @@ stage1_train_args="
 "
 
 train_args="
+    --debug ${debug} \
     --deepspeed ${deepspeed_config} \
     --no_remove_unused_columns \
     --learning_rate 1e-4 \
