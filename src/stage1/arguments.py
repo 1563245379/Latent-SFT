@@ -42,6 +42,9 @@ class DataArguments:
 
 @dataclass
 class Stage1TrainingArguments(TrainingArguments):
+    overwrite_output_dir: bool = field(
+        default=False, metadata={"help": "Overwrite the content of the output directory"}
+    )
     lora_tune: bool = field(
         default=True, metadata={"help": "Whether to use lora"}
     )
