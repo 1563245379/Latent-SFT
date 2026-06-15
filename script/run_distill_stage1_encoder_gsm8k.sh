@@ -19,7 +19,8 @@ save_root="${REPO_ROOT}/output/stage1_encoder"
 output_name="Llama-3.2-1B-gsm8k-encoder"
 encoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
 decoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
-train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
+train_data_path="${TRAIN_DATA_PATH:-zen-E/GSM8k-Aug-NL}"
+train_data_split="${TRAIN_DATA_SPLIT:-train}"
 compression_rate=2
 topk_interpolation=10
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
@@ -49,6 +50,7 @@ model_args="
 
 data_args="
     --train_data_path ${train_data_path} \
+    --train_data_split ${train_data_split} \
     --compression_rate ${compression_rate} \
 "
 

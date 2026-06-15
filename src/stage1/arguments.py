@@ -31,7 +31,10 @@ class ModelArguments:
 @dataclass
 class DataArguments:
     train_data_path: str = field(
-        default=None, metadata={"help": "Path to train data"}
+        default=None, metadata={"help": "Path to local JSONL train data or Hugging Face dataset id"}
+    )
+    train_data_split: str = field(
+        default="train", metadata={"help": "Split to load when train_data_path is a Hugging Face dataset id"}
     )
     compression_rate: int = field(
         default=1, metadata={"help": "Compression ratio, which indicates how many explicit tokens are compressed into latent tokens"}

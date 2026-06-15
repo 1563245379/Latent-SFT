@@ -1,9 +1,16 @@
 import json
-import torch
-from torch.utils.data import Dataset
+import logging
+import os
 import re
-from typing import Union, List
-from typing import List, Any
+
+import torch
+from datasets import load_dataset
+from torch.utils.data import Dataset
+from typing import List, Union
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_HF_SPLIT = "train"
 
 def insert_special_token_every_k(ids, special_id, special_label_id=-100, k=2):
     '''
@@ -36,6 +43,78 @@ def read_jsonl(input_file_path):
             if line.strip():  
                 data.append(json.loads(line))
     return data
+
+
+def _looks_like_local_jsonl_path(path):
+    expanded_path = os.path.expanduser(path)
+    return (
+        os.path.exists(expanded_path)
+        or expanded_path.endswith(".jsonl")
+        or expanded_path.startswith((".", os.sep))
+    )
+
+
+def _load_stage1_data(path, split=DEFAULT_HF_SPLIT):
+    if not path:
+        raise ValueError("train_data_path must be a local JSONL path or Hugging Face dataset id.")
+
+    expanded_path = os.path.expanduser(path)
+    if _looks_like_local_jsonl_path(expanded_path):
+        if not os.path.exists(expanded_path):
+            raise FileNotFoundError(f"Training data JSONL not found: {expanded_path}")
+        data = read_jsonl(expanded_path)
+        logger.info("Loaded %s Stage 1 rows from local JSONL %s.", len(data), expanded_path)
+        return data
+
+    data = load_dataset(path, split=split)
+    logger.info("Loaded %s Stage 1 rows from Hugging Face dataset %s split %s.", len(data), path, split)
+    return data
+
+
+def _require_nonempty_text(example, field, idx):
+    if field not in example:
+        raise ValueError(f"Example {idx} is missing required field: {field}")
+
+    value = example[field]
+    if value is None:
+        raise ValueError(f"Example {idx} has empty field: {field}")
+
+    text = str(value).strip()
+    if not text:
+        raise ValueError(f"Example {idx} has empty field: {field}")
+    return text
+
+
+def _format_cot_answer(cot, answer):
+    if "\\boxed" in cot:
+        return cot
+
+    boxed_answer = answer if "\\boxed" in answer else f"\\boxed{{{answer}}}"
+    return f"{cot}\n\nTherefore, the final answer is {boxed_answer}."
+
+
+def _normalize_stage1_example(example, idx=None):
+    if all(field in example for field in ("problem", "cot", "cot_answer")):
+        normalized = dict(example)
+        normalized["problem"] = _require_nonempty_text(example, "problem", idx)
+        normalized["cot"] = _require_nonempty_text(example, "cot", idx)
+        normalized["cot_answer"] = _require_nonempty_text(example, "cot_answer", idx)
+        return normalized
+
+    if all(field in example for field in ("question", "cot", "answer")):
+        cot = _require_nonempty_text(example, "cot", idx)
+        answer = _require_nonempty_text(example, "answer", idx)
+
+        normalized = dict(example)
+        normalized["problem"] = _require_nonempty_text(example, "question", idx)
+        normalized["cot"] = cot
+        normalized["cot_answer"] = _format_cot_answer(cot, answer)
+        return normalized
+
+    raise ValueError(
+        f"Example {idx} has unsupported Stage 1 schema. Expected either "
+        "problem/cot/cot_answer or question/cot/answer fields."
+    )
 
 
 def build_latent_token_induction_mask(
@@ -318,11 +397,12 @@ class Stage1Dataset(Dataset):
         args, 
         model
     ):
-        if path is not None:
-            self.data = read_jsonl(path)
-
         self.args = args
         self.model = model
+        self.data = _load_stage1_data(
+            path,
+            split=getattr(args, "train_data_split", DEFAULT_HF_SPLIT),
+        )
         self.total_len = len(self.data)
 
 
@@ -341,6 +421,7 @@ def pretrain_tokenize_function(examples,
         model,
         compression_rate
     ):
+    examples = _normalize_stage1_example(examples)
 
     # Caution: Since each model uses a different instruction template, we apply custom formatting 
     # instead of using `apply_chat_template` directly.
