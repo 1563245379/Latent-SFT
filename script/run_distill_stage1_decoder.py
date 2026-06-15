@@ -36,6 +36,8 @@ from src.stage1.data import (  # noqa: E402
 )
 from src.stage1.trainer import Stage1DecoderTrainer  # noqa: E402
 from src.modeling.modeling_stage1 import LatentSFTStage1Decoder  # noqa: E402
+from src.checkpointing import prepare_best_and_recent_checkpointing  # noqa: E402
+from src.training_utils import split_train_validation_dataset  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,7 @@ def main():
     model_args: ModelArguments
     data_args: DataArguments
     training_args: TrainingArguments
+    prepare_best_and_recent_checkpointing(training_args)
 
     if (
         os.path.exists(training_args.output_dir)
@@ -95,16 +98,23 @@ def main():
         topk_interpolation=model_args.topk_interpolation,
     )
 
-    train_dataset = Stage1Dataset(
+    full_train_dataset = Stage1Dataset(
         path=data_args.train_data_path,
         args=data_args,
         model=model,
+    )
+    train_dataset, validation_dataset = split_train_validation_dataset(
+        full_train_dataset,
+        validation_split_ratio=data_args.validation_split_ratio,
+        seed=training_args.seed,
     )
 
     trainer = Stage1DecoderTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        validation_data_args=data_args,
         data_collator=DataCollatorForDynamicPadding(
             model.tokenizer.pad_token_id,
             model.compress_token_id,

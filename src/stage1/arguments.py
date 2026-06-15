@@ -39,6 +39,9 @@ class DataArguments:
     compression_rate: int = field(
         default=1, metadata={"help": "Compression ratio, which indicates how many explicit tokens are compressed into latent tokens"}
     )
+    validation_split_ratio: float = field(
+        default=0.0, metadata={"help": "Ratio of training data reserved for validation accuracy during decoder training"}
+    )
 
 @dataclass
 class Stage1TrainingArguments(TrainingArguments):
@@ -56,5 +59,17 @@ class Stage1TrainingArguments(TrainingArguments):
     )
     lora_dropout: float = field(
         default=0.1, metadata={"help": "Lora dropout, only valid when `lora_tune=True`"}
+    )
+    save_best_total_limit: Optional[int] = field(
+        default=None, metadata={"help": "Maximum number of best validation-accuracy checkpoints to keep"}
+    )
+    save_recent_total_limit: Optional[int] = field(
+        default=None, metadata={"help": "Maximum number of most recent checkpoints to keep in addition to best checkpoints"}
+    )
+    validation_batch_size: int = field(
+        default=1, metadata={"help": "Batch size used by validation accuracy generation"}
+    )
+    validation_max_new_tokens: int = field(
+        default=256, metadata={"help": "Maximum generated tokens per validation example"}
     )
     

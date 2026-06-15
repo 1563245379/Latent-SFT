@@ -28,6 +28,8 @@ from src.stage1.data import (
 from src.stage1.trainer import (
     Stage1UnionTrainer
 )
+from src.checkpointing import prepare_best_and_recent_checkpointing
+from src.training_utils import split_train_validation_dataset
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ def main():
     model_args: ModelArguments
     data_args: DataArguments
     training_args: TrainingArguments
+    prepare_best_and_recent_checkpointing(training_args)
 
     if (
             os.path.exists(training_args.output_dir)
@@ -84,15 +87,22 @@ def main():
         topk_interpolation=model_args.topk_interpolation,
     )
 
-    train_dataset = Stage1Dataset(path=data_args.train_data_path,
+    full_train_dataset = Stage1Dataset(path=data_args.train_data_path,
         args=data_args, 
         model=model
+    )
+    train_dataset, validation_dataset = split_train_validation_dataset(
+        full_train_dataset,
+        validation_split_ratio=data_args.validation_split_ratio,
+        seed=training_args.seed,
     )
 
     trainer = Stage1UnionTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
+        validation_dataset=validation_dataset,
+        validation_data_args=data_args,
         data_collator=DataCollatorForDynamicPadding(model.tokenizer.pad_token_id,model.compress_token_id, model.latent_token_ids[-1]),
         tokenizer=model.tokenizer,
     )

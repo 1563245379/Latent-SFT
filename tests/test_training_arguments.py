@@ -57,6 +57,68 @@ class TrainingArgumentsCompatibilityTest(unittest.TestCase):
 
         self.assertTrue(training_args.overwrite_output_dir)
 
+    def test_stage1_parser_accepts_decoder_checkpoint_retention_arguments(self):
+        parser = HfArgumentParser(
+            (Stage1ModelArguments, Stage1DataArguments, Stage1TrainingArguments)
+        )
+
+        _, data_args, training_args = parser.parse_args_into_dataclasses(
+            [
+                "--encoder_name_or_path",
+                "encoder",
+                "--decoder_name_or_path",
+                "decoder",
+                "--train_data_path",
+                "/tmp/train.jsonl",
+                "--output_dir",
+                "/tmp/latent-sft-stage1-decoder",
+                "--validation_split_ratio",
+                "0.2",
+                "--save_best_total_limit",
+                "3",
+                "--save_recent_total_limit",
+                "1",
+                "--validation_batch_size",
+                "4",
+            ]
+        )
+
+        self.assertEqual(data_args.validation_split_ratio, 0.2)
+        self.assertEqual(training_args.save_best_total_limit, 3)
+        self.assertEqual(training_args.save_recent_total_limit, 1)
+        self.assertEqual(training_args.validation_batch_size, 4)
+
+    def test_stage2_parser_accepts_validation_split_and_checkpoint_retention_arguments(self):
+        parser = HfArgumentParser(
+            (Stage2ModelArguments, Stage2DataArguments, Stage2TrainingArguments)
+        )
+
+        _, data_args, training_args = parser.parse_args_into_dataclasses(
+            [
+                "--latent_model_path",
+                "latent",
+                "--train_data_path",
+                "/tmp/train.jsonl",
+                "--train_latent_soft_label_path",
+                "/tmp/latent",
+                "--output_dir",
+                "/tmp/latent-sft-stage2",
+                "--validation_split_ratio",
+                "0.1",
+                "--save_best_total_limit",
+                "3",
+                "--save_recent_total_limit",
+                "1",
+                "--validation_batch_size",
+                "2",
+            ]
+        )
+
+        self.assertEqual(data_args.validation_split_ratio, 0.1)
+        self.assertEqual(training_args.save_best_total_limit, 3)
+        self.assertEqual(training_args.save_recent_total_limit, 1)
+        self.assertEqual(training_args.validation_batch_size, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

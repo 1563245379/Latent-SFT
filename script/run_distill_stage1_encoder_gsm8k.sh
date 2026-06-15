@@ -21,6 +21,7 @@ train_data_path="${TRAIN_DATA_PATH:-zen-E/GSM8k-Aug-NL}"
 train_data_split="${TRAIN_DATA_SPLIT:-train}"
 compression_rate=2
 topk_interpolation=10
+checkpoint_save_total_limit=3
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -74,7 +75,7 @@ train_args="
     --dataloader_prefetch_factor 16 \
     --dataloader_pin_memory True \
     --logging_steps 1 \
-    --save_total_limit 10 \
+    --save_total_limit ${checkpoint_save_total_limit} \
     --save_strategy epoch \
     --gradient_checkpointing False \
     --report_to tensorboard \

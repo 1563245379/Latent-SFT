@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
 from transformers import TrainingArguments
 
@@ -47,6 +48,9 @@ class DataArguments:
     noise_scale: float = field(
         default=1.0, metadata={"help": "Scale factor for Gumbel noise"}
     )
+    validation_split_ratio: float = field(
+        default=0.0, metadata={"help": "Ratio of training data reserved for validation accuracy during decoder training"}
+    )
 
 
 @dataclass
@@ -68,5 +72,17 @@ class Stage2TrainingArguments(TrainingArguments):
     )
     training: bool = field(
         default=True, metadata={"help": "Whether to training"}
+    )
+    save_best_total_limit: Optional[int] = field(
+        default=None, metadata={"help": "Maximum number of best validation-accuracy checkpoints to keep"}
+    )
+    save_recent_total_limit: Optional[int] = field(
+        default=None, metadata={"help": "Maximum number of most recent checkpoints to keep in addition to best checkpoints"}
+    )
+    validation_batch_size: int = field(
+        default=1, metadata={"help": "Batch size used by validation accuracy generation"}
+    )
+    validation_max_new_tokens: int = field(
+        default=256, metadata={"help": "Maximum generated tokens per validation example"}
     )
     

@@ -8,14 +8,26 @@ from transformers import AutoModelForCausalLM
 from transformers.trainer import Trainer
 
 from src.trainer_compat import normalize_trainer_init_kwargs
+from src.validation import update_checkpoint_validation_accuracy
 
 logger = logging.getLogger(__name__)
 
 
 class Stage2Trainer(Trainer):
     def __init__(self, *sargs, **kwargs):
+        self.validation_dataset = kwargs.pop("validation_dataset", None)
+        self.validation_data_args = kwargs.pop("validation_data_args", None)
         kwargs = normalize_trainer_init_kwargs(kwargs)
         super().__init__(*sargs, **kwargs)
+
+    def _save_checkpoint(self, model, trial):
+        super()._save_checkpoint(model, trial)
+        update_checkpoint_validation_accuracy(
+            self,
+            validation_dataset=self.validation_dataset,
+            validation_stage="stage2",
+            data_args=self.validation_data_args,
+        )
 
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         output_dir = output_dir if output_dir is not None else self.args.output_dir

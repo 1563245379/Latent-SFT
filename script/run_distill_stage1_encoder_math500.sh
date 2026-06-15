@@ -20,6 +20,7 @@ decoder_name_or_path="<path-or-hf-id-of-your-base-model>"
 train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
 compression_rate=16
 topk_interpolation=10
+checkpoint_save_total_limit=3
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -72,7 +73,7 @@ train_args="
     --dataloader_prefetch_factor 16 \
     --dataloader_pin_memory True \
     --logging_steps 1 \
-    --save_total_limit 10 \
+    --save_total_limit ${checkpoint_save_total_limit} \
     --save_strategy epoch \
     --gradient_checkpointing True \
     --report_to tensorboard \

@@ -18,6 +18,10 @@ output_name=""
 latent_model_path="<path-to-stage1-best-checkpoint-hf>"
 train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
 train_latent_soft_label_path="<path-to-train-latent-soft-label-chunks>"
+validation_split_ratio=0.05
+validation_batch_size=4
+save_best_total_limit=3
+save_recent_total_limit=1
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -51,6 +55,7 @@ data_args="
     --add_gumbel_noise True \
     --gumbel_temperature 1.0 \
     --noise_scale 1.0 \
+    --validation_split_ratio ${validation_split_ratio} \
 "
 
 stage2_train_args="
@@ -73,7 +78,11 @@ train_args="
     --gradient_accumulation_steps 8 \
     --dataloader_drop_last False \
     --logging_steps 1 \
-    --save_total_limit 70 \
+    --save_best_total_limit ${save_best_total_limit} \
+    --save_recent_total_limit ${save_recent_total_limit} \
+    --validation_batch_size ${validation_batch_size} \
+    --metric_for_best_model validation_accuracy \
+    --greater_is_better True \
     --save_strategy epoch \
     --gradient_checkpointing False \
     --report_to tensorboard \
