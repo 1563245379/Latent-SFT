@@ -68,7 +68,7 @@ train_args="
     --lr_scheduler_type cosine \
     --num_train_epochs 10 \
     --bf16 \
-    --per_device_train_batch_size 8 \
+    --per_device_train_batch_size 16 \
     --gradient_accumulation_steps 8 \
     --dataloader_drop_last False \
     --dataloader_num_workers 8 \
