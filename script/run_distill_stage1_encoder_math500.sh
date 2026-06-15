@@ -10,8 +10,6 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON="${PYTHON:-python}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-$("${PYTHON}" -c 'import torch; print(torch.cuda.device_count())' 2>/dev/null || echo 8)}"
 MASTER_PORT="${MASTER_PORT:-25001}"
-export WANDB_PROJECT="${WANDB_PROJECT:-latent-sft-topk}"
-export WANDB_API_KEY=''
 export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 
 # Editable config
@@ -77,7 +75,8 @@ train_args="
     --save_total_limit 10 \
     --save_strategy epoch \
     --gradient_checkpointing True \
-    --report_to wandb \
+    --report_to tensorboard \
+    --logging_dir ${output_dir}/tensorboard \
     --run_name ${output_name} \
     --overwrite_output_dir \
     --output_dir ${output_dir}
