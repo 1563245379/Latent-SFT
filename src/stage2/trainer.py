@@ -7,13 +7,13 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM
 from transformers.trainer import Trainer
 
-from src.trainer_compat import normalize_trainer_init_kwargs
+from src.trainer_compat import SafeRngStateResumeMixin, normalize_trainer_init_kwargs
 from src.validation import update_checkpoint_validation_accuracy
 
 logger = logging.getLogger(__name__)
 
 
-class Stage2Trainer(Trainer):
+class Stage2Trainer(SafeRngStateResumeMixin, Trainer):
     def __init__(self, *sargs, **kwargs):
         self.validation_dataset = kwargs.pop("validation_dataset", None)
         self.validation_data_args = kwargs.pop("validation_data_args", None)

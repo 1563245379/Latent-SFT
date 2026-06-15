@@ -6,10 +6,10 @@ from typing import *
 import os
 import torch.distributed as dist
 
-from src.trainer_compat import normalize_trainer_init_kwargs
+from src.trainer_compat import SafeRngStateResumeMixin, normalize_trainer_init_kwargs
 from src.validation import update_checkpoint_validation_accuracy
 
-class Stage1EncoderTrainer(Trainer):
+class Stage1EncoderTrainer(SafeRngStateResumeMixin, Trainer):
 
     def __init__(self, *sargs, **kwargs):
         kwargs = normalize_trainer_init_kwargs(kwargs)
@@ -63,7 +63,7 @@ class Stage1EncoderTrainer(Trainer):
 
         return (loss, outputs) if return_outputs else loss
 
-class Stage1DecoderTrainer(Trainer):
+class Stage1DecoderTrainer(SafeRngStateResumeMixin, Trainer):
 
     def __init__(self, *sargs, **kwargs):
         self.validation_dataset = kwargs.pop("validation_dataset", None)
@@ -127,7 +127,7 @@ class Stage1DecoderTrainer(Trainer):
 
         return (loss, outputs) if return_outputs else loss
 
-class Stage1UnionTrainer(Trainer):
+class Stage1UnionTrainer(SafeRngStateResumeMixin, Trainer):
 
     def __init__(self, *sargs, **kwargs):
         self.validation_dataset = kwargs.pop("validation_dataset", None)
