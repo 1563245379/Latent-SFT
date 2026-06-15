@@ -6,9 +6,12 @@ from typing import *
 import os
 import torch.distributed as dist
 
+from src.trainer_compat import normalize_trainer_init_kwargs
+
 class Stage1EncoderTrainer(Trainer):
 
     def __init__(self, *sargs, **kwargs):
+        kwargs = normalize_trainer_init_kwargs(kwargs)
         super().__init__(*sargs, **kwargs)
     
 
@@ -62,6 +65,7 @@ class Stage1EncoderTrainer(Trainer):
 class Stage1DecoderTrainer(Trainer):
 
     def __init__(self, *sargs, **kwargs):
+        kwargs = normalize_trainer_init_kwargs(kwargs)
         super().__init__(*sargs, **kwargs)
     
 
@@ -115,6 +119,7 @@ class Stage1DecoderTrainer(Trainer):
 class Stage1UnionTrainer(Trainer):
 
     def __init__(self, *sargs, **kwargs):
+        kwargs = normalize_trainer_init_kwargs(kwargs)
         super().__init__(*sargs, **kwargs)
     
 

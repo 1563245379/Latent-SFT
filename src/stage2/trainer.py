@@ -7,10 +7,16 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM
 from transformers.trainer import Trainer
 
+from src.trainer_compat import normalize_trainer_init_kwargs
+
 logger = logging.getLogger(__name__)
 
 
 class Stage2Trainer(Trainer):
+    def __init__(self, *sargs, **kwargs):
+        kwargs = normalize_trainer_init_kwargs(kwargs)
+        super().__init__(*sargs, **kwargs)
+
     def _save(self, output_dir: Optional[str] = None, state_dict=None):
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)
@@ -54,4 +60,3 @@ class Stage2Trainer(Trainer):
         loss = outputs.loss
 
         return (loss, outputs) if return_outputs else loss
-
