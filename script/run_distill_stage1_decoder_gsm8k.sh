@@ -14,9 +14,9 @@ export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 
 # Editable config
 save_root="${REPO_ROOT}/output/stage1_decoder"
-output_name=""
+output_name="Llama-3.2-1B-gsm8k-decoder"
 encoder_name_or_path="<path-to-stage1-encoder-checkpoint>"
-decoder_name_or_path="<path-or-hf-id-of-your-base-model>"
+decoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
 train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
 compression_rate=2
 topk_interpolation=10
