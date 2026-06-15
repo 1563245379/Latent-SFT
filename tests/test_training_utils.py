@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from src.training_utils import apply_debug_training_limits, split_train_validation_dataset
+from src.training_utils import get_resume_from_checkpoint, should_block_existing_output_dir
 
 
 class DatasetSplitTest(unittest.TestCase):
@@ -57,6 +58,34 @@ class DatasetSplitTest(unittest.TestCase):
 
         self.assertEqual(len(debug_dataset), 50)
         self.assertEqual(training_args.num_train_epochs, 3)
+
+    def test_existing_output_dir_is_allowed_when_resuming_from_checkpoint(self):
+        training_args = SimpleNamespace(
+            output_dir="/tmp/non-empty-run",
+            do_train=True,
+            overwrite_output_dir=False,
+            resume_from_checkpoint="/tmp/non-empty-run/checkpoint-100",
+        )
+
+        self.assertFalse(should_block_existing_output_dir(training_args, output_dir_has_contents=True))
+
+    def test_existing_output_dir_still_blocks_without_resume_or_overwrite(self):
+        training_args = SimpleNamespace(
+            output_dir="/tmp/non-empty-run",
+            do_train=True,
+            overwrite_output_dir=False,
+            resume_from_checkpoint=None,
+        )
+
+        self.assertTrue(should_block_existing_output_dir(training_args, output_dir_has_contents=True))
+
+    def test_resume_checkpoint_path_is_forwarded_to_trainer_train(self):
+        training_args = SimpleNamespace(resume_from_checkpoint="/tmp/run/checkpoint-42")
+
+        self.assertEqual(
+            get_resume_from_checkpoint(training_args),
+            "/tmp/run/checkpoint-42",
+        )
 
 
 if __name__ == "__main__":

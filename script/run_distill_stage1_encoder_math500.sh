@@ -22,6 +22,7 @@ compression_rate=16
 topk_interpolation=10
 checkpoint_save_total_limit=3
 debug=False
+resume_from_checkpoint=""
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -84,6 +85,9 @@ train_args="
     --overwrite_output_dir \
     --output_dir ${output_dir}
 "
+if [[ -n "${resume_from_checkpoint}" ]]; then
+    train_args+=" --resume_from_checkpoint ${resume_from_checkpoint}"
+fi
 
 # ----------------------------------------------------------------------------
 # 6. Launch

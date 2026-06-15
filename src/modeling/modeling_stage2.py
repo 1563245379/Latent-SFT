@@ -19,6 +19,10 @@ class LatentOutput(ModelOutput):
     loss: Optional[Tensor] = None
     logits: Optional[Tensor] = None
 
+
+def _is_main_process() -> bool:
+    return (not dist.is_available()) or (not dist.is_initialized()) or (dist.get_rank() == 0)
+
 def kd_kl_loss(               # "True KL" × T², averaged over valid tokens
     logits: torch.Tensor,     # [B, S, V] student logits (pre-softmax)
     target_probs: torch.Tensor,  # [B, S, V] soft targets (teacher probabilities, possibly unnormalized)
@@ -164,8 +168,10 @@ class LatentSFTStage2SoftEmbedding(nn.Module):
                 else:
                     raise ValueError("Unsupported model type")
             
-            if save_path is not None and dist.get_rank() == 0 :
-                self.save(os.path.join(save_path, 'base_model'))
+            if save_path is not None and _is_main_process():
+                base_model_dir = os.path.join(save_path, 'base_model')
+                if not os.path.exists(base_model_dir) or not os.listdir(base_model_dir):
+                    self.save(base_model_dir)
         
 
         self.latent_token_ids = self.tokenizer(self.latent_tokens, add_special_tokens=False)['input_ids']

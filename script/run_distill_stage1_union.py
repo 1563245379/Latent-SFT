@@ -32,7 +32,9 @@ from src.checkpointing import prepare_best_and_recent_checkpointing
 from src.training_utils import (
     apply_debug_training_limits,
     apply_project_debug_flag,
+    get_resume_from_checkpoint,
     parse_project_debug_flag,
+    should_block_existing_output_dir,
     split_train_validation_dataset,
 )
 
@@ -50,14 +52,13 @@ def main():
     training_args: TrainingArguments
     prepare_best_and_recent_checkpointing(training_args)
 
-    if (
-            os.path.exists(training_args.output_dir)
-            and os.listdir(training_args.output_dir)
-            and training_args.do_train
-            and not training_args.overwrite_output_dir
+    if should_block_existing_output_dir(
+        training_args,
+        output_dir_has_contents=os.path.exists(training_args.output_dir) and bool(os.listdir(training_args.output_dir)),
     ):
         raise ValueError(
-            f"Output directory ({training_args.output_dir}) already exists and is not empty. Use --overwrite_output_dir to overcome."
+            f"Output directory ({training_args.output_dir}) already exists and is not empty. "
+            "Use --overwrite_output_dir or --resume_from_checkpoint to overcome."
         )
 
     # Setup logging
@@ -117,7 +118,7 @@ def main():
 
     Path(training_args.output_dir).mkdir(parents=True, exist_ok=True)
 
-    train_result = trainer.train()
+    train_result = trainer.train(resume_from_checkpoint=get_resume_from_checkpoint(training_args))
     trainer.save_model()
     if trainer.is_world_process_zero():
         model.tokenizer.save_pretrained(training_args.output_dir)

@@ -91,6 +91,20 @@ def apply_debug_training_limits(dataset, training_args):
     return Subset(dataset, range(sample_count))
 
 
+def get_resume_from_checkpoint(training_args):
+    resume_from_checkpoint = getattr(training_args, "resume_from_checkpoint", None)
+    return resume_from_checkpoint or None
+
+
+def should_block_existing_output_dir(training_args, output_dir_has_contents: bool) -> bool:
+    return (
+        output_dir_has_contents
+        and getattr(training_args, "do_train", False)
+        and not getattr(training_args, "overwrite_output_dir", False)
+        and get_resume_from_checkpoint(training_args) is None
+    )
+
+
 def raw_examples_from_dataset(dataset):
     if isinstance(dataset, Subset):
         examples = raw_examples_from_dataset(dataset.dataset)
