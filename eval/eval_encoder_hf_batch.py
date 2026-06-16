@@ -15,6 +15,22 @@ import time
 import argparse
 from torch import nn
 import torch.nn.functional as F
+from datasets import load_dataset
+
+
+HF_DATASET_ALIASES = {
+    "gsm8k": "openai/gsm8k",
+    "gsm8": "openai/gsm8k",
+    "openai/gsm8k": "openai/gsm8k",
+    "math500": "HuggingFaceH4/MATH-500",
+    "math-500": "HuggingFaceH4/MATH-500",
+    "huggingfaceh4/math-500": "HuggingFaceH4/MATH-500",
+}
+
+HF_DATASET_DEFAULT_SPLITS = {
+    "openai/gsm8k": "test",
+    "HuggingFaceH4/MATH-500": "test",
+}
 
 
 def insert_special_token_every_k(ids, special_id, k):
@@ -432,6 +448,86 @@ def read_jsonl(file_path):
         for line in file:
             data.append(json.loads(line))
     return data    
+
+
+def _resolve_hf_dataset_name(dataset):
+    return HF_DATASET_ALIASES.get(dataset.lower())
+
+
+def _extract_gsm8k_answer(solution):
+    if "####" in solution:
+        return solution.rsplit("####", 1)[-1].strip()
+    return extract_answer(solution)
+
+
+def _require_field(example, field_name, dataset_name, idx):
+    value = example.get(field_name)
+    if value is None:
+        raise ValueError(
+            f"{dataset_name} example at index {idx} is missing required field "
+            f"{field_name!r}"
+        )
+    return str(value)
+
+
+def _normalize_gsm8k_example(example, idx):
+    solution = _require_field(example, "answer", "openai/gsm8k", idx)
+    return {
+        "problem": _require_field(example, "question", "openai/gsm8k", idx),
+        "solution": solution,
+        "answer": _extract_gsm8k_answer(solution),
+    }
+
+
+def _normalize_math500_example(example, idx):
+    normalized = dict(example)
+    normalized["problem"] = _require_field(
+        example, "problem", "HuggingFaceH4/MATH-500", idx
+    )
+    normalized["solution"] = _require_field(
+        example, "solution", "HuggingFaceH4/MATH-500", idx
+    )
+    normalized["answer"] = _require_field(
+        example, "answer", "HuggingFaceH4/MATH-500", idx
+    )
+    return normalized
+
+
+def load_eval_data(dataset, data_path=None, hf_split=None):
+    if data_path:
+        return read_jsonl(data_path)
+
+    hf_dataset_name = _resolve_hf_dataset_name(dataset)
+    if hf_dataset_name is None:
+        raise ValueError(
+            f"--data_path is required for dataset {dataset!r}. "
+            "Omit --data_path only for openai/gsm8k or HuggingFaceH4/MATH-500."
+        )
+
+    split = hf_split or HF_DATASET_DEFAULT_SPLITS[hf_dataset_name]
+    if hf_dataset_name == "openai/gsm8k":
+        raw_data = load_dataset("openai/gsm8k", "main", split=split)
+        return [
+            _normalize_gsm8k_example(example, idx)
+            for idx, example in enumerate(raw_data)
+        ]
+
+    if hf_dataset_name == "HuggingFaceH4/MATH-500":
+        raw_data = load_dataset("HuggingFaceH4/MATH-500", split=split)
+        return [
+            _normalize_math500_example(example, idx)
+            for idx, example in enumerate(raw_data)
+        ]
+
+    raise ValueError(f"Unsupported Hugging Face dataset: {hf_dataset_name}")
+
+
+def format_dataset_label(dataset):
+    hf_dataset_name = _resolve_hf_dataset_name(dataset)
+    label = hf_dataset_name or dataset
+    return label.replace("/", "_")
+
+
 def write_jsonl(data, output_file_path):
     with open(output_file_path, 'w', encoding='utf-8') as file:
         for item in data:
@@ -440,9 +536,19 @@ def write_jsonl(data, output_file_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', default='Math500', type=str, choices=['GSM8k', 'Math500', 'AIME24'])
-    parser.add_argument('--data_path', type=str, required=True,
-                        help='Path to the evaluation jsonl file for the selected --dataset')
+    parser.add_argument(
+        '--dataset',
+        default='Math500',
+        type=str,
+        choices=['GSM8k', 'Math500', 'AIME24', 'openai/gsm8k', 'HuggingFaceH4/MATH-500'],
+        help='Dataset name. GSM8k/openai/gsm8k and Math500/HuggingFaceH4/MATH-500 '
+             'can be loaded directly from Hugging Face when --data_path is omitted.'
+    )
+    parser.add_argument('--data_path', type=str, default=None,
+                        help='Optional path to a local evaluation jsonl file. When omitted, '
+                             'supported Hugging Face datasets are loaded by --dataset.')
+    parser.add_argument('--hf_split', type=str, default=None,
+                        help='Split to load for Hugging Face datasets. Defaults to test.')
     parser.add_argument('--check_point', type=str, required=True,
                         help='Encoder checkpoint step to evaluate, e.g. "4500"')
     parser.add_argument('--encoder_name_or_path', type=str, required=True,
@@ -480,7 +586,7 @@ if __name__ == '__main__':
         max_new_tokens = args.max_new_tokens,
         batch_size = args.batch_size
     )
-    data = read_jsonl(args.data_path)
+    data = load_eval_data(args.dataset, data_path=args.data_path, hf_split=args.hf_split)
     gen_texts = model.gen(data)
     for i in range(len(data)):
         data[i]['prediction'] = gen_texts[i]
@@ -500,7 +606,8 @@ if __name__ == '__main__':
 
     if args.save_path is not None:
         os.makedirs(args.save_path, exist_ok=True)
-    write_jsonl(data,os.path.join(args.save_path,f'{check_point}_{args.max_new_tokens}_{args.dataset}_result.jsonl'))
-    with open(os.path.join(args.save_path,f'eval_result_{args.dataset}.txt'), "a", encoding="utf-8") as f:
+    dataset_label = format_dataset_label(args.dataset)
+    write_jsonl(data,os.path.join(args.save_path,f'{check_point}_{args.max_new_tokens}_{dataset_label}_result.jsonl'))
+    with open(os.path.join(args.save_path,f'eval_result_{dataset_label}.txt'), "a", encoding="utf-8") as f:
         f.write('=======================================================\n')
         f.write(f'Scores: {sum(results)/len(results)} check_point: {args.check_point} mex_new_tokens: {args.max_new_tokens}'+'\n')

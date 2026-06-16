@@ -20,6 +20,12 @@ decoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
 train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
 compression_rate=2
 topk_interpolation=10
+validation_split_ratio=0.05
+validation_batch_size=4
+save_best_total_limit=3
+save_recent_total_limit=1
+debug=False
+resume_from_checkpoint=""
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -48,6 +54,7 @@ model_args="
 data_args="
     --train_data_path ${train_data_path} \
     --compression_rate ${compression_rate} \
+    --validation_split_ratio ${validation_split_ratio} \
 "
 
 stage1_train_args="
@@ -57,6 +64,7 @@ stage1_train_args="
 "
 
 train_args="
+    --debug ${debug} \
     --deepspeed ${deepspeed_config} \
     --no_remove_unused_columns \
     --learning_rate 1e-4 \
@@ -65,14 +73,18 @@ train_args="
     --lr_scheduler_type cosine \
     --num_train_epochs 10 \
     --bf16 \
-    --per_device_train_batch_size 8 \
-    --gradient_accumulation_steps 8 \
+    --per_device_train_batch_size 16 \
+    --gradient_accumulation_steps 2 \
     --dataloader_drop_last False \
     --dataloader_num_workers 8 \
     --dataloader_prefetch_factor 16 \
     --dataloader_pin_memory True \
     --logging_steps 1 \
-    --save_total_limit 10 \
+    --save_best_total_limit ${save_best_total_limit} \
+    --save_recent_total_limit ${save_recent_total_limit} \
+    --validation_batch_size ${validation_batch_size} \
+    --metric_for_best_model validation_accuracy \
+    --greater_is_better True \
     --save_strategy epoch \
     --gradient_checkpointing False \
     --report_to tensorboard \
@@ -81,6 +93,9 @@ train_args="
     --overwrite_output_dir \
     --output_dir ${output_dir}
 "
+if [[ -n "${resume_from_checkpoint}" ]]; then
+    train_args+=" --resume_from_checkpoint ${resume_from_checkpoint}"
+fi
 
 # ----------------------------------------------------------------------------
 # 6. Launch

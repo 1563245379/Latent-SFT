@@ -23,7 +23,7 @@ compression_rate=2
 topk_interpolation=10
 checkpoint_save_total_limit=3
 debug=False
-resume_from_checkpoint=""
+resume_from_checkpoint="/workspace/Latent-SFT/output/stage1_encoder/Llama-3.2-1B-gsm8k-encoder/checkpoint-21035"
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
 output_dir="${save_root}/${output_name}"
 
@@ -72,7 +72,7 @@ train_args="
     --num_train_epochs 10 \
     --bf16 \
     --per_device_train_batch_size 16 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 2 \
     --dataloader_drop_last False \
     --dataloader_num_workers 8 \
     --dataloader_prefetch_factor 16 \
