@@ -6,14 +6,15 @@ export HF_HOME=/workspace/cache
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Runtime overrides: PYTHON=python NPROC_PER_NODE=8 MASTER_PORT=25001 bash $0
+# Runtime overrides:
+#   DEBUG=True OUTPUT_DIR=/tmp/latent-sft-debug PYTHON=python NPROC_PER_NODE=8 MASTER_PORT=25001 bash $0
 PYTHON="${PYTHON:-python}"
 NPROC_PER_NODE="${NPROC_PER_NODE:-$("${PYTHON}" -c 'import torch; print(torch.cuda.device_count())' 2>/dev/null || echo 8)}"
 MASTER_PORT="${MASTER_PORT:-25001}"
 export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 
 # Editable config
-save_root="${REPO_ROOT}/output/stage1_decoder"
+save_root="${SAVE_ROOT:-${REPO_ROOT}/output/stage1_decoder}"
 output_name="Llama-3.2-1B-gsm8k-decoder"
 encoder_name_or_path="${REPO_ROOT}/output/stage1_encoder/Llama-3.2-1B-gsm8k-encoder/hf"
 decoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
@@ -25,10 +26,10 @@ validation_split_ratio=0.01
 validation_batch_size=16
 save_best_total_limit=3
 save_recent_total_limit=1
-debug=False
+debug="${DEBUG:-False}"
 resume_from_checkpoint=""
 deepspeed_config="${REPO_ROOT}/config_zero1.json"
-output_dir="${save_root}/${output_name}"
+output_dir="${OUTPUT_DIR:-${save_root}/${output_name}}"
 
 # Create the run directory and archive this launcher for reproducibility.
 mkdir -p "${output_dir}"

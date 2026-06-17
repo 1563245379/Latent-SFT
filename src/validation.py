@@ -25,6 +25,33 @@ def _dist_barrier():
         dist.barrier()
 
 
+def _dist_rank_and_world_size():
+    if dist.is_available() and dist.is_initialized():
+        return dist.get_rank(), dist.get_world_size()
+    return 0, 1
+
+
+def _rank_shard_examples(examples, rank, world_size):
+    if world_size <= 0:
+        raise ValueError("world_size must be positive.")
+    return examples[rank::world_size]
+
+
+def _dist_sum_validation_counts(correct, total, device):
+    if not dist.is_available() or not dist.is_initialized():
+        return correct, total
+
+    backend = str(dist.get_backend()).lower()
+    tensor_device = device if "nccl" in backend else torch.device("cpu")
+    counts = torch.tensor(
+        [float(correct), float(total)],
+        dtype=torch.float64,
+        device=tensor_device,
+    )
+    dist.all_reduce(counts, op=dist.ReduceOp.SUM)
+    return int(counts[0].item()), int(counts[1].item())
+
+
 def _model_device(model):
     return next(model.parameters()).device
 
@@ -68,17 +95,24 @@ def extract_validation_answer(example):
 
 
 def compute_accuracy_from_predictions(predictions, examples):
+    correct, total = _count_correct_predictions(predictions, examples)
+    if total == 0:
+        return 0.0
+    return correct / total
+
+
+def _count_correct_predictions(predictions, examples):
     if len(predictions) != len(examples):
         raise ValueError("Prediction count must match validation example count.")
     if not examples:
-        return 0.0
+        return 0, 0
 
     correct = 0
     for prediction, example in zip(predictions, examples):
         pred_answer = extract_answer(prediction)
         gt_answer = extract_validation_answer(example)
         correct += int(check_is_correct(pred_answer, gt_answer))
-    return correct / len(examples)
+    return correct, len(examples)
 
 
 def _stage2_prompt(example, model):
@@ -320,41 +354,50 @@ def compute_validation_accuracy(
     examples = raw_examples_from_dataset(validation_dataset)
     if not examples:
         return 0.0
+    if stage not in {"stage2", "stage1_decoder", "stage1_union"}:
+        raise ValueError(f"Unsupported validation stage: {stage}")
+
+    rank, world_size = _dist_rank_and_world_size()
+    local_examples = _rank_shard_examples(examples, rank, world_size)
 
     was_training = model.training
     model.eval()
     try:
         with torch.no_grad():
-            if stage == "stage2":
+            if not local_examples:
+                predictions = []
+            elif stage == "stage2":
                 predictions = _generate_stage2_predictions(
                     model,
-                    examples,
+                    local_examples,
                     batch_size=batch_size,
                     max_new_tokens=max_new_tokens,
                 )
             elif stage in {"stage1_decoder", "stage1_union"}:
                 predictions = _generate_stage1_predictions(
                     model,
-                    examples,
+                    local_examples,
                     batch_size=batch_size,
                     max_new_tokens=max_new_tokens,
                     compression_rate=data_args.compression_rate,
                 )
-            else:
-                raise ValueError(f"Unsupported validation stage: {stage}")
     finally:
         if was_training:
             model.train()
 
-    return compute_accuracy_from_predictions(predictions, examples)
+    local_correct, local_total = _count_correct_predictions(predictions, local_examples)
+    correct, total = _dist_sum_validation_counts(
+        local_correct,
+        local_total,
+        device=_model_device(model),
+    )
+    if total == 0:
+        return 0.0
+    return correct / total
 
 
 def update_checkpoint_validation_accuracy(trainer, validation_dataset, validation_stage, data_args):
     if validation_dataset is None:
-        return
-
-    if not trainer.is_world_process_zero():
-        _dist_barrier()
         return
 
     accuracy = compute_validation_accuracy(
@@ -365,6 +408,10 @@ def update_checkpoint_validation_accuracy(trainer, validation_dataset, validatio
         batch_size=trainer.args.validation_batch_size,
         max_new_tokens=trainer.args.validation_max_new_tokens,
     )
+    if not trainer.is_world_process_zero():
+        _dist_barrier()
+        return
+
     trainer.log({"validation_accuracy": accuracy})
 
     checkpoint_dir = Path(trainer.args.output_dir) / f"checkpoint-{trainer.state.global_step}"
