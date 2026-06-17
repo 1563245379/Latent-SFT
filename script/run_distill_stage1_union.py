@@ -31,6 +31,7 @@ from src.stage1.trainer import (
 from src.checkpointing import prepare_best_and_recent_checkpointing
 from src.training_utils import (
     apply_debug_training_limits,
+    apply_debug_validation_limits,
     apply_project_debug_flag,
     get_resume_from_checkpoint,
     parse_project_debug_flag,
@@ -105,6 +106,7 @@ def main():
         seed=training_args.seed,
     )
     train_dataset = apply_debug_training_limits(train_dataset, training_args)
+    validation_dataset = apply_debug_validation_limits(validation_dataset, training_args)
 
     trainer = Stage1UnionTrainer(
         model=model,

@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import Subset, random_split
 
 DEBUG_SAMPLE_LIMIT = 200
+DEBUG_VALIDATION_SAMPLE_LIMIT = 50
 DEBUG_NUM_TRAIN_EPOCHS = 3
 
 
@@ -88,6 +89,22 @@ def apply_debug_training_limits(dataset, training_args):
     if hasattr(training_args, "max_steps"):
         training_args.max_steps = -1
     sample_count = min(DEBUG_SAMPLE_LIMIT, len(dataset))
+    return Subset(dataset, range(sample_count))
+
+
+def apply_debug_validation_limits(dataset, training_args):
+    if dataset is None:
+        return None
+
+    debug = getattr(training_args, "training_debug", False)
+    legacy_debug = getattr(training_args, "debug", False)
+    if isinstance(legacy_debug, bool):
+        debug = debug or legacy_debug
+
+    if not debug:
+        return dataset
+
+    sample_count = min(DEBUG_VALIDATION_SAMPLE_LIMIT, len(dataset))
     return Subset(dataset, range(sample_count))
 
 

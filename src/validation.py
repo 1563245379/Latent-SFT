@@ -10,7 +10,11 @@ from eval_utils.parser import extract_answer
 from src.checkpointing import rotate_trainer_checkpoints_for_best_and_recent
 from src.modeling.modeling_stage1 import _get_decoder_embed_tokens, softmax_over_embedding_topk
 from src.modeling.modeling_stage2 import LatentSFTStage2SoftEmbedding
-from src.stage1.data import build_latent_token_induction_mask, insert_special_token_every_k
+from src.stage1.data import (
+    _normalize_stage1_example,
+    build_latent_token_induction_mask,
+    insert_special_token_every_k,
+)
 from src.training_utils import raw_examples_from_dataset
 
 logger = logging.getLogger(__name__)
@@ -167,6 +171,7 @@ def _stage1_reasoning_text(example):
 
 
 def _prepare_stage1_example(example, model, compression_rate):
+    example = _normalize_stage1_example(example)
     problem = example["problem"]
     encoder_name = model.encoder_name_or_path.lower()
     if "deepseek" in encoder_name:

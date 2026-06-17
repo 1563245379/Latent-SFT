@@ -559,11 +559,11 @@ if __name__ == '__main__':
                         help='Path or HF repo id of the frozen decoder used for generation')
     parser.add_argument('--save_path', type=str, required=True,
                         help='Directory to write evaluation results to')
-    parser.add_argument('--mp_size', type=int, default=8)
+    parser.add_argument('--mp_size', type=int, default=4)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--dtype', default='bfloat16', type=str, choices=['float32', 'float16', 'bfloat16'])
     parser.add_argument('--max_length', type=int, default=4096)
-    parser.add_argument('--max_new_tokens', type=int, default=4096)
+    parser.add_argument('--max_new_tokens', type=int, default=512)
     parser.add_argument('--compression_rate', type=int, default=16)
     parser.add_argument('--topk_interpolation', type=int, default=10)
     

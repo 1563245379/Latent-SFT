@@ -1,7 +1,11 @@
 import unittest
 from types import SimpleNamespace
 
-from src.training_utils import apply_debug_training_limits, split_train_validation_dataset
+from src.training_utils import (
+    apply_debug_training_limits,
+    apply_debug_validation_limits,
+    split_train_validation_dataset,
+)
 from src.training_utils import get_resume_from_checkpoint, should_block_existing_output_dir
 
 
@@ -58,6 +62,26 @@ class DatasetSplitTest(unittest.TestCase):
 
         self.assertEqual(len(debug_dataset), 50)
         self.assertEqual(training_args.num_train_epochs, 3)
+
+    def test_debug_limits_validation_dataset_to_50_examples(self):
+        training_args = SimpleNamespace(debug=True)
+
+        debug_dataset = apply_debug_validation_limits(
+            list(range(500)),
+            training_args=training_args,
+        )
+
+        self.assertEqual(len(debug_dataset), 50)
+
+    def test_debug_validation_limit_preserves_missing_validation_dataset(self):
+        training_args = SimpleNamespace(debug=True)
+
+        debug_dataset = apply_debug_validation_limits(
+            None,
+            training_args=training_args,
+        )
+
+        self.assertIsNone(debug_dataset)
 
     def test_existing_output_dir_is_allowed_when_resuming_from_checkpoint(self):
         training_args = SimpleNamespace(

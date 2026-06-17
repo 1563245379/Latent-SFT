@@ -15,9 +15,10 @@ export NCCL_DEBUG="${NCCL_DEBUG:-WARN}"
 # Editable config
 save_root="${REPO_ROOT}/output/stage1_decoder"
 output_name="Llama-3.2-1B-gsm8k-decoder"
-encoder_name_or_path="<path-to-stage1-encoder-checkpoint>"
+encoder_name_or_path="${REPO_ROOT}/output/stage1_encoder/Llama-3.2-1B-gsm8k-encoder/checkpoint-30050/hf"
 decoder_name_or_path="meta-llama/Llama-3.2-1B-Instruct"
-train_data_path="${REPO_ROOT}/<path-to-your-train-jsonl>"
+train_data_path="${TRAIN_DATA_PATH:-zen-E/GSM8k-Aug-NL}"
+train_data_split="${TRAIN_DATA_SPLIT:-train}"
 compression_rate=2
 topk_interpolation=10
 validation_split_ratio=0.05
